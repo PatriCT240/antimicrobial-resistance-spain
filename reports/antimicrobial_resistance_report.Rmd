@@ -1,6 +1,6 @@
 ---
 title: "Antimicrobial Resistance in Spain (2000–2018)"
-author: "Patrícia Cózar Torrell"
+author: "Patrícia C. Torrell"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -615,3 +615,4 @@ sink()
 - Cassini, A., Högberg, L. D., Plachouras, D., Quattrocchi, A., Hoxha, A., Simonsen, G. S., ... & Suetens, C. (2019). Attributable deaths and disability-adjusted life-years caused by infections with antibiotic-resistant bacteria in the EU and the European Economic Area in 2015: A population-level modelling analysis. *The Lancet Infectious Diseases, 19*(1), 56–66. https://doi.org/10.1016/S1473-3099(18)30605-4
 
 - O’Neill, J. (2016). *Tackling drug-resistant infections globally: Final report and recommendations*. Review on Antimicrobial Resistance. https://amr-review.org
+
