@@ -1,0 +1,612 @@
+---
+title: "Antimicrobial Resistance in Spain (2000–2018)"
+author: "Patrícia Cózar Torrell"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+## Introduction
+
+Antimicrobial resistance (AMR) is one of the most critical public health threats of the 21st century.
+
+Globally, resistant bacterial infections are estimated to cause **700,000 deaths per year**, including **33,000 deaths in the European Union**. Nearly **40% of the AMR burden** is caused by bacteria resistant to last‑line antibiotics such as carbapenems and colistin.
+
+In **Spain**, AMR is responsible for approximately **3,000 deaths annually**, and nearly **4 million people** suffer severe infections caused by resistant bacteria.
+
+Understanding AMR patterns is essential to guide prevention strategies, optimize antibiotic use, and support clinical decision‑making.
+
+This report analyzes AMR trends in Spain using EARS‑Net data from **2000 to 2018**, focusing on:
+
+- Age‑specific resistance patterns
+- Gender‑specific resistance patterns
+- Bacteria–antibiotic resistance profiles
+- Temporal evolution of resistance
+- Predictive modeling (time series + classification tree)
+
+## Data Source
+
+Data were obtained from the **European Antimicrobial Resistance Surveillance Network (EARS‑Net)** and pre‑cleaned by Sam Fenske (Kaggle dataset).
+
+The dataset includes resistance proportions for **8 clinically relevant bacterial pathogens:**
+
+- *Escherichia coli*
+- *Klebsiella pneumoniae*
+- *Pseudomonas aeruginosa*
+- *Acinetobacter spp.*
+- *Streptococcus pneumoniae*
+- *Staphylococcus aureus*
+- *Enterococcus faecalis*
+- *Enterococcus faecium*
+
+Data span **2000–2018** and include resistance proportions by:
+
+- Age group
+- Gender
+- Antibiotic group
+- Country
+
+## Project Pipeline
+
+This report uses modular scripts stored in the scripts/ directory.
+
+```{r}
+source("../scripts/00_load_packages.R")
+source("../scripts/01_load_data.R")
+source("../scripts/02_clean_data.R")
+source("../scripts/03_transformations.R")
+
+```
+
+## Load Packages
+
+```{r}
+packages <- c(
+  "readr", "ggplot2", "gridExtra", "reshape2", "formattable",
+  "FactoMineR", "factoextra", "corrplot", "tidyr", "dplyr",
+  "paletteer", "dichromat", "forecast", "lubridate", "zoo",
+  "rpart", "rattle", "yardstick"
+)
+
+lapply(packages, library, character.only = TRUE)
+
+```
+
+## Load Data
+
+You can also embed plots, for example:
+
+```{r}
+df <- read_csv("data/raw/ecdc.csv")
+
+```
+
+## Data Cleaning
+
+```{r}
+# Remove unused column
+df <- subset(df, select = -Unit)
+
+# Rename columns
+colnames(df)[1:9] <- c(
+  "Record", "ResistanceType", "Year", "CountryCode", "Country",
+  "Category", "Resistance", "Bacteria", "Antibiotic"
+)
+
+# Shorten bacteria names
+original_bacteria <- c(
+  "Escherichia coli", "Klebsiella pneumoniae", "Pseudomonas aeruginosa",
+  "Streptococcus pneumoniae", "Staphylococcus aureus",
+  "Enterococcus faecalis", "Enterococcus faecium"
+)
+
+short_bacteria <- c(
+  "E. coli", "K. pneumoniae", "P. aeruginosa",
+  "S. pneumoniae", "S. aureus", "E. faecalis", "E. faecium"
+)
+
+for (i in seq_along(original_bacteria)) {
+  df$Bacteria[df$Bacteria == original_bacteria[i]] <- short_bacteria[i]
+}
+
+# Shorten antibiotic names
+original_ab <- c(
+  "Aminoglycosides", "Carbapenems",
+  "Combined resistance (fluoroquinolones, aminoglycosides and carbapenems)",
+  "Fluoroquinolones", "Aminopenicillins", "High-level gentamicin",
+  "Vancomycin",
+  "Combined resistance (third-generation cephalosporin, fluoroquinolones and aminoglycoside)",
+  "Third-generation cephalosporins", "Ceftazidime",
+  "Combined resistance (at least three of piperac. and tazob., fluoroq., ceftaz., aminogl. and carbapenems)",
+  "PiperacillinTazobactam", "Meticillin (MRSA)", "Macrolides", "Penicillins"
+)
+
+short_ab <- c(
+  "AG", "CAR", "XDR", "FQ", "AMP", "HGA", "VAN",
+  "C3G/FQ/AG", "C3G", "CAZ", "TRIPLE", "PIP/TAZ",
+  "MRSA", "MAC", "PEN"
+)
+
+for (i in seq_along(original_ab)) {
+  df$Antibiotic[df$Antibiotic == original_ab[i]] <- short_ab[i]
+}
+
+# Round resistance values
+df$Resistance <- round(df$Resistance, 2)
+
+# Convert year to Date
+df$Year <- as.Date(paste0(df$Year, "-01-01"))
+```
+
+## Data Transformations
+
+```{r}
+# Split by age and gender
+df_age <- subset(df, ResistanceType == "R - resistant isolates proportion, by age")
+df_gender <- subset(df, ResistanceType == "R - resistant isolates proportion, by gender")
+
+# Order age groups
+df_age$Category <- factor(df_age$Category, levels = c("0-4", "5-18", "19-64", "65+"))
+
+# Standardize gender labels
+df_gender$Category <- ifelse(df_gender$Category == "Male", "Male",
+                             ifelse(df_gender$Category == "Female", "Female", df_gender$Category))
+
+# Filter Spain
+df_ES <- subset(df, Country == "Spain", select = -c(CountryCode, Country))
+df_age_ES <- subset(df_age, Country == "Spain", select = -c(CountryCode, Country))
+df_gender_ES <- subset(df_gender, Country == "Spain", select = -c(CountryCode, Country))
+
+```
+
+# 1. Resistance by Age Group
+
+## 1.1 Boxplots of Resistance by Age and Bacteria
+
+```{r}
+source("../scripts/04_analysis_age.R")
+
+```
+
+```{r}
+bacteria_list <- as.list(unique(df_ES$Bacteria))
+
+plots_age <- lapply(bacteria_list, function(bac) {
+  ggplot(df_age_ES[df_age_ES$Bacteria == bac, ], aes(x = Category, y = Resistance)) +
+    geom_boxplot(fill = "#65b32e", colour = "#0c4828", alpha = 0.5, outlier.shape = NA) +
+    coord_cartesian(ylim = c(0, 100)) +
+    ggtitle(bac) +
+    labs(x = "Age Group", y = "% Resistance")
+})
+
+grid.arrange(grobs = plots_age, ncol = 4)
+
+```
+
+**Interpretation:**
+
+- *Acinetobacter spp.* shows the highest variability and highest resistance across age groups.
+
+- **E. coli** and **K. pneumoniae** show consistently low resistance.
+
+- **S. aureus** resistance increases with age.
+
+- *S. pneumoniae** shows high resistance in children aged 0–4.
+
+## 1.2 ANOVA: Factors Influencing Resistance
+
+The model includes:
+
+- Age group
+- Bacteria
+- Antibiotic
+- Year
+- All interactions
+
+```{r}
+anova_age <- aov(Resistance ~ Category * Bacteria * Antibiotic * Year, data = df_age_ES)
+summary(anova_age)
+
+```
+
+**Key findings:**
+
+- All main factors and most interactions are statistically significant.
+- Age, bacteria, antibiotic group, and year all influence resistance levels.
+
+## 1.3 PCA: Age–Bacteria Resistance Patterns
+
+```{r}
+# Create median resistance table
+table_age <- dcast(df_age_ES, Bacteria ~ Category, value.var = "Resistance", fun.aggregate = median)
+
+# Set row names
+rownames(table_age) <- table_age$Bacteria
+
+# Run PCA
+pca <- PCA(table_age[, -1], graph = FALSE)
+
+# PCA plots
+fviz_pca_ind(pca, col.ind = "cos2",
+             gradient.cols = c("#c2dae8", "#e9b855", "#c34a17"),
+             title = "PCA of Bacteria by Age Group")
+
+fviz_pca_var(pca, col.var = "contrib",
+             gradient.cols = c("#c2dae8", "#e9b855", "#c34a17"),
+             axes.linetype = "dashed",
+             title = "PCA Variable Contributions")
+
+```
+
+**Insights:**
+
+- Two principal components explain **98%** of total variance.
+
+- Age groups 5–18, 19–64, and 65+ cluster together.
+
+- Age group 0–4 behaves differently, especially for *S. pneumoniae*.
+
+# 1.4 Correlation Matrix of Age Groups
+
+```{r}
+library(corrplot)
+
+# Extract numeric columns
+age_numeric <- table_age[, -1]
+
+# Compute correlation matrix
+cor_matrix <- cor(age_numeric, use = "pairwise.complete.obs")
+
+# Plot correlation matrix
+corrplot(cor_matrix, method = "number", col = colorRampPalette(c("#c2dae8", "#1a6b85"))(10))
+
+```
+
+Strong positive correlations exist among all age groups except 0–4, which behaves independently.
+
+# 2. Resistance by Gender
+
+## 2.1 Boxplots of Resistance by Gender and Bacteria
+
+```{r}
+source("../scripts/05_analysis_gender.R")
+
+```
+
+```{r}
+plots_gender <- lapply(bacteria_list, function(bac) {
+  ggplot(df_gender_ES[df_gender_ES$Bacteria == bac, ], aes(x = Category, y = Resistance)) +
+    geom_boxplot(fill = "#65b32e", colour = "#0c4828", alpha = 0.5, outlier.shape = NA) +
+    coord_cartesian(ylim = c(0, 100)) +
+    ggtitle(bac) +
+    labs(x = "Gender", y = "% Resistance")
+})
+
+grid.arrange(grobs = plots_gender, ncol = 4)
+
+```
+
+**Findings:**
+
+- Resistance patterns are similar between males and females.
+
+- *Acinetobacter spp.* again shows the highest resistance.
+
+- *E. faecalis* shows high variability but low resistance.
+
+# 2.2 ANOVA: Influence of Gender, Bacteria, Antibiotic and Year
+
+```{r}
+anova_gender <- aov(Resistance ~ Category * Bacteria * Antibiotic * Year, data = df_gender_ES)
+summary(anova_gender)
+
+```
+
+**Key results**:
+
+- Significant differences exist between bacteria and gender.
+
+- Some bacteria show slightly higher resistance in males.
+
+# 2.3 Median Resistance Table by Gender and Bacteria
+
+```{r}
+table_gender <- dcast(df_gender_ES, Bacteria ~ Category, value.var = "Resistance", fun.aggregate = median)
+
+# Round values
+table_gender[,2:3] <- round(table_gender[,2:3], 2)
+
+table_gender
+
+```
+
+# 2.4 Correlation Between Male and Female Resistance
+
+```{r}
+cor(table_gender[, c("Male", "Female")], method = "pearson")
+
+```
+
+# 2.5 Difference in Resistance (Male – Female)
+
+```{r}
+table_gender$Difference <- table_gender$Male - table_gender$Female
+
+ggplot(table_gender, aes(x = Bacteria, y = Difference, fill = Difference > 0)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("#7cbdc4", "#65b32e"),
+                    labels = c("Higher in Females", "Higher in Males")) +
+  labs(y = "Difference (% Male - % Female)", x = "Bacteria",
+       title = "Difference in Resistance Between Males and Females") +
+  geom_text(aes(label = round(Difference, 2)), vjust = -0.5, size = 3) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+Most bacteria show slightly higher resistance in males, except:
+
+- *E. faecalis*
+
+- *S. pneumoniae*
+
+These show slightly higher resistance in females.
+
+# 3. Bacteria–Antibiotic Resistance Profiles
+
+## 3.1 Median Resistance Table by Bacteria and Antibiotic
+
+```{r}
+source("../scripts/06_analysis_antibiotics.R")
+
+```
+
+```{r}
+table_ab <- dcast(df_ES, Bacteria ~ Antibiotic, value.var = "Resistance", fun.aggregate = median)
+
+# Convert to numeric and round
+table_ab[, 2:ncol(table_ab)] <- apply(table_ab[, 2:ncol(table_ab)], 2, as.numeric)
+table_ab[, 2:ncol(table_ab)] <- round(table_ab[, 2:ncol(table_ab)], 2)
+
+table_ab
+```
+
+**Interpretation:**
+
+- Blank cells indicate antibiotics not used for a given bacterium.
+
+- Combination therapies (e.g., C3G/FQ/AG) show **lower resistance**, confirming synergistic effects.
+
+# 3.2 Long Format for Visualization
+
+```{r}
+library(tidyr)
+
+df_long <- gather(table_ab, key = "Antibiotic", value = "Resistance", -Bacteria)
+df_long$Resistance <- as.numeric(df_long$Resistance)
+
+```
+
+# 3.3 Stacked Barplot of Antibiotics with Resistance > 10%
+
+```{r}
+library(dplyr)
+
+df_filtered <- df_long %>%
+  filter(!is.na(Resistance) & Resistance > 10)
+
+palette_colors <- c("#0B490A", "#65b32e", "#70E6B8", "#C0D236",
+                    "#3E5B84", "#008C75", "#82428D", "#E8683F",
+                    "#B81A5D", "#7C170F")
+
+ggplot(df_filtered, aes(x = Resistance, y = Bacteria, fill = Antibiotic)) +
+  geom_col() +
+  scale_fill_manual(values = palette_colors) +
+  labs(x = "% Resistance", y = "Bacteria", fill = "Antibiotic Group",
+       title = "Antibiotics with Resistance > 10%") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+```
+
+**Key observations:**
+
+- *Acinetobacter spp.* shows high resistance to multiple antibiotic groups.
+
+- Fluoroquinolones show the highest resistance across bacteria.
+
+- Combination therapies rarely exceed 10% resistance.
+    
+## 4. Temporal Evolution of Resistance
+
+# 4.1 Mean Resistance per Antibiotic and Year
+
+```{r}
+source("../scripts/07_time_series.R")
+
+```
+
+```{r}
+mean_res <- df_ES %>%
+  group_by(Antibiotic, Year) %>%
+  summarise(mean_res = mean(Resistance), .groups = "drop")
+
+palette2 <- c("#0B490A", "#65b32e", "#C7C7C7", "#70E6B8", "#C0D236",
+              "#3E5B84", "#008C75", "#82428D", "#F1D676", "#E8683F",
+              "#DC9635", "#B81A5D", "#7C170F", "#717171", "#003C50")
+
+ggplot(mean_res, aes(x = Year, y = mean_res, color = Antibiotic)) +
+  geom_line() +
+  scale_color_manual(values = palette2) +
+  labs(title = "Evolution of Antibiotic Resistance in Spain",
+       x = "Year", y = "% Resistance (mean)") +
+  theme_minimal()
+
+```
+
+# 4.2 Grouping Antibiotics: Betalactam vs Non‑Betalactam
+
+```{r}
+df_ES <- df_ES %>%
+  mutate(Group = case_when(
+    Antibiotic %in% c("AMP", "CAZ", "PIP/TAZ", "C3G", "CAR", "HGA", "PEN") ~ "Betalactam",
+    Antibiotic %in% c("TRIPLE", "XDR", "AG", "FQ", "C3G/FQ/AG", "MAC", "VAN", "MRSA") ~ "Non-Betalactam"
+  ))
+
+```
+
+# 4.3 Betalactam Resistance Over Time
+
+```{r}
+df_betalactam <- subset(df_ES, Group == "Betalactam")
+
+mean_betalactam <- df_betalactam %>%
+  group_by(Antibiotic, Year) %>%
+  summarise(mean_res = mean(Resistance), .groups = "drop")
+
+ggplot(mean_betalactam, aes(x = Year, y = mean_res, color = Antibiotic)) +
+  geom_line() +
+  scale_color_manual(values = palette2) +
+  labs(title = "Evolution of Betalactam Resistance in Spain",
+       x = "Year", y = "% Resistance (mean)") +
+  theme_minimal()
+
+```
+
+All beta‑lactam‑related groups show an **upward trend**, indicating increasing resistance over time.
+
+# 4.4 Non‑Betalactam Resistance Over Time
+
+```{r}
+df_nonbetalactam <- subset(df_ES, Group == "Non-Betalactam")
+
+mean_nonbetalactam <- df_nonbetalactam %>%
+  group_by(Antibiotic, Year) %>%
+  summarise(mean_res = mean(Resistance), .groups = "drop")
+
+ggplot(mean_nonbetalactam, aes(x = Year, y = mean_res, color = Antibiotic)) +
+  geom_line() +
+  scale_color_manual(values = palette2) +
+  labs(title = "Evolution of Non-Betalactam Resistance in Spain",
+       x = "Year", y = "% Resistance (mean)") +
+  theme_minimal()
+
+```
+
+Mixed patterns:
+
+- Increasing: aminoglycosides, fluoroquinolones
+
+- Stable or decreasing: macrolides, vancomycin
+    
+# 5. Predictive Modeling
+
+## 5.1 Time Series Forecasting (ARIMA)
+
+```{r}
+# Executed inside 07_time_series.R
+
+```
+
+```{r}
+# Prepare time series using the mean resistance across all antibiotics
+ts_data <- ts(mean_res$mean_res, frequency = 1)
+
+# Fit ARIMA model
+fit <- auto.arima(ts_data)
+
+# Forecast and plot
+forecast_values <- forecast(fit)
+plot(forecast_values,
+     main = "Forecast of Antimicrobial Resistance (ARIMA Model)",
+     ylab = "% Resistance",
+     xlab = "Year")
+
+```
+
+**Result:**
+
+Forecasts indicate continued upward resistance trends for several antibiotic groups.
+
+# 5.2 Classification Tree for Predicting Resistance
+
+```{r}
+source("../scripts/08_classification_tree.R")
+
+```
+
+```{r}
+# Build classification tree
+tree_model <- rpart(Resistance ~ Bacteria + Antibiotic + Year,
+                    data = df_ES,
+                    method = "anova")
+
+# Plot tree
+fancyRpartPlot(tree_model)
+
+```
+
+**Insights:**
+
+- Bacteria type is the strongest predictor of resistance.
+
+- Antibiotic group is the second most important factor.
+
+- The model can support empirical antibiotic selection.
+
+## Conclusions
+
+- ***Acinetobacter spp.*** shows the highest and most variable resistance across all analyses.
+
+- **Age group 0–4** behaves differently from all other age groups, especially for *S. pneumoniae*.
+
+- **Gender differences** exist but are generally small, with slightly higher resistance in males for most bacteria.
+
+- **Fluoroquinolones** consistently show the highest resistance across bacteria.
+
+- **Combination therapies** (e.g., C3G/FQ/AG) show lower resistance, indicating strong synergistic effects.
+
+- **Betalactam resistance** is increasing over time and should be monitored closely.
+
+- **Non‑betalactam antibiotics** show mixed trends, with some increasing and others stable.
+
+- **ARIMA forecasting** suggests continued upward trends in resistance for several antibiotic groups.
+
+- **Classification tree modeling** confirms that bacteria type is the strongest predictor of resistance, followed by antibiotic group and year.
+
+- Overall, the findings highlight the need for **targeted surveillance, responsible antibiotic use,** and **continued development of new antimicrobial strategies**.
+
+# Reproducibility information
+sessionInfo()
+
+```{r}
+pkgs <- sessionInfo()$otherPkgs
+sink("requirements.txt")
+for (p in names(pkgs)) {
+  cat(paste0(p, "==", pkgs[[p]]$Version, "\n"))
+}
+sink()
+
+```
+
+# References
+
+- European Centre for Disease Prevention and Control. (2021). *Surveillance of antimicrobial resistance in Europe 2021*. ECDC. https://www.ecdc.europa.eu
+
+- Fenske, S. (2021). *European Antimicrobial Resistance Dataset (EARS-Net)* [Data set]. Kaggle. https://www.kaggle.com/datasets/samfenske/euro-resistance
+
+- World Health Organization. (2014). *Antimicrobial resistance: Global report on surveillance*. WHO Press. https://www.who.int/publications/i/item/9789241564748
+
+- Cassini, A., Högberg, L. D., Plachouras, D., Quattrocchi, A., Hoxha, A., Simonsen, G. S., ... & Suetens, C. (2019). Attributable deaths and disability-adjusted life-years caused by infections with antibiotic-resistant bacteria in the EU and the European Economic Area in 2015: A population-level modelling analysis. *The Lancet Infectious Diseases, 19*(1), 56–66. https://doi.org/10.1016/S1473-3099(18)30605-4
+
+- O’Neill, J. (2016). *Tackling drug-resistant infections globally: Final report and recommendations*. Review on Antimicrobial Resistance. https://amr-review.org

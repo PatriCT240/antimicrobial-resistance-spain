@@ -1,0 +1,6 @@
+theme: minima
+title: "Antimicrobial Resistance in Spain (2000–2018)"
+description: "Data analysis, public health insights, and predictive modeling using EARS-Net surveillance data."
+author: "Patrícia Cózar Torrell"
+markdown: kramdown
+show_downloads: false
