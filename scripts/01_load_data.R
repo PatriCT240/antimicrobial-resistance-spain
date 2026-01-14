@@ -1,1 +1,2 @@
-df <- read_csv("data/raw/ecdc.csv")
+raw_path <- file.path(PROJECT_ROOT, "data", "raw", "ecdc.csv")
+df <- readr::read_csv(raw_path)

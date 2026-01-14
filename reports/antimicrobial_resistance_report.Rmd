@@ -13,6 +13,10 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(here)
+PROJECT_ROOT <- here::here()
+
 ```
 
 ## Introduction
@@ -86,7 +90,8 @@ lapply(packages, library, character.only = TRUE)
 You can also embed plots, for example:
 
 ```{r}
-df <- read_csv("data/raw/ecdc.csv")
+raw_path <- file.path(PROJECT_ROOT, "data", "raw", "ecdc.csv")
+df <- readr::read_csv(raw_path)
 
 ```
 

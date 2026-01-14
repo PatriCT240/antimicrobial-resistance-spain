@@ -88,4 +88,5 @@ fviz_pca_ind(
   pca_age,
   col.ind = "cos2",
   gradient.cols = c("#c2dae8", "#e9b855", "#c34a17"),
-  title = "PCA of bacteria (age-specific resistance
+  title = "PCA of bacteria (age-specific resistance)"
+)

@@ -22,14 +22,16 @@ conf_matrix <- table(
 )
 
 # yardstick expects a tibble; we adapt manually for plotting
-conf_mat_obj <- yardstick::conf_mat(
-  data.frame(
-    truth = df_ES$Antibiotic,
-    estimate = predicted_ab
-  ),
-  truth = truth,
-  estimate = estimate
-)
+df_cm <- data.frame( truth = df_ES$Antibiotic, estimate = predicted_ab ) 
 
-autoplot(conf_mat_obj, type = "heatmap") +
+# Convert to factors (REQUIRED by yardstick) 
+df_cm$truth <- as.factor(df_cm$truth) 
+df_cm$estimate <- as.factor(df_cm$estimate)
+
+conf_mat_obj <- yardstick::conf_mat( 
+  df_cm, 
+  truth = truth, 
+  estimate = estimate 
+  ) 
+autoplot(conf_mat_obj, type = "heatmap") + 
   scale_fill_gradient(low = "#C2DAE8", high = "#003C50")
