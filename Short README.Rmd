@@ -1,0 +1,81 @@
+---
+title: "Short README"
+output: html_notebook
+---
+
+# Antimicrobial Resistance in Spain (2000–2018)
+**Data Analysis Project by Patrícia C. Torrell**
+
+This project analyzes 18 years of antimicrobial resistance (AMR) data in Spain using EARS‑Net surveillance records.  
+It applies industry‑standard analytics, statistical modeling, and clear scientific communication to uncover trends that matter for public health and clinical decision‑making.
+
+---
+
+## Key Insights (Executive Summary)
+- AMR is rising in Spain, especially in **betalactam antibiotics**.  
+- **Acinetobacter spp.** shows the highest and most variable resistance.  
+- Children aged **0–4** display unique resistance patterns.  
+- **Fluoroquinolones** consistently show the highest resistance across bacteria.  
+- Predictive models (ARIMA + classification tree) indicate **continued upward trends**.
+
+---
+
+## Project Highlights
+
+### Age & Gender Analysis
+- Boxplots, ANOVA, PCA, correlations  
+- Clear differences across age groups  
+- Small but consistent gender effects  
+
+### Antibiotic Resistance Profiles
+- Median resistance tables  
+- Stacked barplots for RAM > 10%  
+- Betalactam vs non‑betalactam trends  
+
+### Predictive Modeling
+- **ARIMA forecasting** for resistance evolution  
+- **Classification tree** for antibiotic decision support  
+
+---
+
+## Repository Structure
+
+project/
+│
+├── data/
+│   ├── raw/               # Original dataset
+│   └── processed/         # Cleaned datasets
+│
+├── reports/
+│   └── antimicrobial_resistance_report.Rmd
+│
+├── outputs/
+│   ├── figures/           # Generated plots
+│   └── tables/            # Summary tables
+│
+├── scripts/               # Modular R scripts
+│
+└── README.md
+
+---
+
+##  Technologies Used
+- **R** (ggplot2, dplyr, FactoMineR, forecast, rpart…)  
+- **RMarkdown** for reproducible reporting  
+- **GitHub** for version control and documentation  
+
+---
+
+## Full Report
+The complete analysis is available in:
+
+```{r}
+reports/antimicrobial_resistance_report.Rmd
+```
+
+---
+
+## 👩‍💻 Author
+**Patrícia C. Torrell**  
+Clinical Data Analyst | Data Science Practitioner  
+Focused on public health analytics, antimicrobial resistance, and reproducible research.
