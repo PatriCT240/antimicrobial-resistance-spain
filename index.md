@@ -8,7 +8,7 @@ This site summarizes the key findings, methodology, and insights from the full a
 ## Executive Summary
 
 - AMR is rising in Spain, especially in **betalactam antibiotics**.  
-- **Acinetobacter spp.** shows the highest and most variable resistance.  
+- ***Acinetobacter* spp.** shows the highest and most variable resistance.  
 - Children aged **0–4** display unique resistance patterns.  
 - **Fluoroquinolones** consistently show the highest resistance across bacteria.  
 - Predictive models indicate **continued upward trends** in resistance.
@@ -68,6 +68,7 @@ Focused on public health analytics, antimicrobial resistance, and reproducible r
 ## GitHub Repository
 
 👉 https://github.com/PatriCT240/antimicrobial-resistance-spain
+
 
 
 
