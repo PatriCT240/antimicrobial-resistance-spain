@@ -1,4 +1,4 @@
-# Antimicrobial Resistance in Spain (2000–2018)
+
 
 Welcome to the project website for the analysis of antimicrobial resistance (AMR) in Spain using EARS‑Net surveillance data from 2000 to 2018.  
 This site summarizes the key findings, methodology, and insights from the full analytical report.
@@ -68,3 +68,4 @@ Focused on public health analytics, antimicrobial resistance, and reproducible r
 ## GitHub Repository
 
 👉 https://github.com/PatriCT240/antimicrobial-resistance-spain
+
